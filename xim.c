@@ -21,6 +21,9 @@ void die(const char *s) {
 	exit(1);								//exit	 --> stdlib.h
 }
 
+/**/
+
+/*toggle raw mode*/
 void disableRawMode() {
 	/*reverts to original attributes saved in orig_termios*/
 	if(tcsetattr(STDIN_FILENO, TCSAFLUSH, &orig_termios) == -1)
@@ -84,12 +87,7 @@ void enableRawMode() {
 	if(tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw) == -1) die("tcsetattr");
 }
 
-/*** init ***/
-int main(){
-	/*enable raw mode*/
-	enableRawMode();
-
-
+char editorReadKey() {
 	/*
 	 *  -- reads one character at a time and writes to c
 	 *  -- quit when press [q]
@@ -98,15 +96,35 @@ int main(){
 	 *	- char		--> prints out code and char
 	 *
 	 * */
+	int nread;
+	char c;
+
+	while ((nread = read(STDIN_FILENO, &c, 1)) != 1) {
+		if (nread == -1 && errno != EAGAIN) die("read");
+	}
+	return c;
+}
+
+/*** input ***/
+
+void editorProcessKeypress() {
+	char c = editorReadKey();
+
+	switch(c) {
+		case CTRL_KEY('q'):
+			exit(0);
+			break;
+	}
+}
+
+/*** init ***/
+int main(){
+	/*enable raw mode*/
+	enableRawMode();
+
+
 	while (1) {
-		char c = '\0';
-		if(read(STDIN_FILENO, &c, 1) == -1 && errno != EAGAIN) die("read");
-		if (iscntrl(c)) {						//iscntrl --> ctype.h
-			printf("%d\r\n", c);					//printf  --> stdio.h			
-		}else {
-			printf("%d ('%c')\r\n", c, c);
-		}
-		if(c == CTRL_KEY('q')) break;
+		editorProcessKeypress();
 	}
 
 	return 0;
